@@ -22,6 +22,7 @@ read_clean <- function(..., sheet){
     mutate(year = sheet)
 }
 
+# The overall code reads, cleans, transforms, and selects specific columns from an Excel file's sheets and stores the result in raw_data.
 raw_data <- map(
   sheets, 
   ~read_clean(raw_data, 
@@ -41,4 +42,53 @@ raw_data <- raw_data |>
   ) |> 
   mutate(locality = str_trim(locality)) |>
   select(year, locality, n_offers, starts_with("average"))
+
+
+#fixing mispellings for the communes
+raw_data <- raw_data |> 
+  mutate(
+    locality = fielse(grep(grep1("Luxembourg-Ville", locality),
+                           "Luxembourg", locality),
+                      locality = ifelse(grep1("P.tange",locality), "Pétange", locality)) |>
+      mutate(across(starts_with("average"),as.numeric))
+  )
+
+#removing rows stating sources
+raw_data <- raw_data |> filter(!grepl("Source", locality))
+
+#only keep the communes in our data
+commune_level_data <- raw_data |> filter(!grepl("nationale|offres", locality),!is.na(locality))
+
+#creating a dataset with national data
+country_level <- raw_data |> filter(grepl("Total d.offres", locality)) |> select(-n_offers)
+
+offers_country <- raw_data |> filter(grepl("Total d.offres", locality)) |> select(year, n_offers)
+
+country_level_data <- full_join(country_level, offers_country) |> select(year, locality, n_offers, everything()) |>
+  mutate(locality = "Grand-Duchy of Luxembourg")
+
+#Joining with 'by = join_by(year)
+
+
+#scraping wikipedia for a list of communes to use for comparison
+current_communes <- "https://w.wiki/6nPu" |>
+  rvest::read_htlm() |>
+  rvest::html_table() |>
+  purr::pluck(1)  |>
+  janitor::clean_names()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
