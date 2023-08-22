@@ -70,12 +70,48 @@ country_level_data <- full_join(country_level, offers_country) |> select(year, l
 #Joining with 'by = join_by(year)
 
 
-#scraping wikipedia for a list of communes to use for comparison
+#scraping wikipedia for a list of communes to use for comparison pg 54
 current_communes <- "https://w.wiki/6nPu" |>
   rvest::read_htlm() |>
   rvest::html_table() |>
   purr::pluck(1)  |>
   janitor::clean_names()
+
+#compare communes
+setdiff(unique(commune_level_data$locality), current_communes$commune)
+
+#using list from wiki of communes from 2010 and beyond then we will harmonize spelling
+former_communes <- "https://w.wiki/_wFe7" |>
+  rvest::read_html() |>
+  rvest::html_table() |>
+  purrr::pluck(3) |>
+  janitor::clean_names() |>
+  dplyr::filter(year_dissolved > 2009)
+
+
+#former_communes
+
+#we will now combine the list of former and current communes and harmonize their names
+communes <- unique(c(former_communes$name, current_communes$commune))
+
+#we need to rename some communes
+
+#different spelling of these communes between wiki and the data
+
+communes[which(communes == "Clemency")] <- "Clémency"
+
+communes[which(communes == "Redange")] <- "Redange-sur-Attert"
+
+communes[which(communes == "Erpeldange-sur-Sûre")] <- "Erpeldange"
+
+communes[which(communes == "Luxembourg-City")] <- "Luxembourg"
+
+communes[which(communes == "Käerjeng")] <- "Kaerjeng"
+
+communes[which(communes == "Petange")] <- "Pétange"
+
+#running test again
+setdiff(unique(commune_level_data$locality), communes)
 
 
 
